@@ -1,0 +1,48 @@
+#!/bin/bash
+#$ -S /bin/bash
+#$ -cwd
+#$ -j y
+#$ -m ea
+#$ -P CDRHID0021		# project ID
+#$ -o /dev/null
+#$ -l h_rt=72:00:00		# time limit
+#$ -l h_vmem=100G		# memory limit
+
+
+# export LOG_DIR=/projects01/VICTRE/elena.sizikova/skin/test_full_pipeline/log/
+export LOG_DIR=/home/brandon.nelson/Dev/REALYSM_peds/log
+
+mkdir -p $LOG_DIR
+
+export LOGNAME=task_$1.log
+export SGE_TASK_ID=$1 #until I get access to CDRFID0021 when calling submit all_renders.sh
+
+
+exec >>  $LOG_DIR/$LOGNAME
+exec 2>> $LOG_DIR/$LOGNAME
+
+echo "==== begin job $JOB_NAME ($SGE_TASK_ID) at:" `date` "on host $HOSTNAME"
+
+# Ensure correct 'sort' and other operations
+# export LANG=C
+# export OMP_NUM_THREADS=$NSLOTS
+
+# source ~/code/skinsilico/bin/activate
+source /projects/mikem/applications/centos7/python3.10/set_run_env.sh
+source /home/brandon.nelson/Dev/REALYSM_peds/.realysm_3.10/bin/activate
+
+
+START_TIME=`date +%s`
+set -x
+( python runRender_peds.py)
+set +x
+EXIT_STATUS=$?
+END_TIME=`date +%s`
+ELAPSED_TIME=`expr $END_TIME - $START_TIME`
+echo "EXIT_STATUS=$EXIT_STATUS"
+echo "ELAPSED_TIME=$ELAPSED_TIME"
+# echo "==== end example run"
+
+echo
+echo "==== end of job $JOB_NAME ($SGE_TASK_ID) at:" `date` "on host $HOSTNAME"
+exit
