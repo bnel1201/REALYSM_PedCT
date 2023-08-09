@@ -43,7 +43,7 @@ def convert_to_dicom(img_slice, phantom_path):
     dcmwrite(phantom_path, ds)
 
 
-def voxelize_ground_truth(phantom_path, material_threshold_dict=None):
+def voxelize_ground_truth(dicom_path, save_path, material_threshold_dict=None):
    """
    Used to convert ground truth image into segmented volumes used by XCIST to run simulations
    
@@ -58,9 +58,9 @@ def voxelize_ground_truth(phantom_path, material_threshold_dict=None):
 
     cfg_file_str = f"""
 # Path where the DICOM images are located:
-phantom.dicom_path = '{phantom_path}'
+phantom.dicom_path = '{dicom_path}'
 # Path where the phantom files are to be written (the last folder name will be the phantom files' base name):
-phantom.phantom_path = '{phantom_path}/voxelized'
+phantom.phantom_path = '{save_path}'
 phantom.materials = {list(material_threshold_dict.keys())}
 phantom.mu_energy = 60                  # Energy (keV) at which mu is to be calculated for all materials.
 phantom.thresholds = {list(material_threshold_dict.values())}	# Lower threshold (HU) for each material.
@@ -69,12 +69,13 @@ phantom.show_phantom = False                # Flag to turn on/off image display.
 phantom.overwrite = True                   # Flag to overwrite existing files without warning.
     """
 
-    dicom_to_voxel_cfg = phantom_path / 'dicom_to_voxelized.cfg'
+    dicom_to_voxel_cfg = dicom_path / 'dicom_to_voxelized.cfg'
 
     with open(dicom_to_voxel_cfg, 'w') as f:
         f.write(cfg_file_str)
     
     DICOM_to_voxelized_phantom.run_from_config(dicom_to_voxel_cfg)
+
 
 
 def get_effective_diameter(ground_truth_mu):
@@ -138,7 +139,10 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     phantom_path.mkdir(exist_ok=True, parents=True)
  
     convert_to_dicom(ground_truth_image, phantom_path / f'ground_truth_{slice_id:03d}.dcm')
-    voxelize_ground_truth(phantom_path)
+
+    processed_phantom_path = phantom_path / f'voxelized_{slice_id:03d}'
+    voxelize_ground_truth(phantom_path, processed_phantom_path)
+
 
     # load defaults
     ct = xc.CatSim('defaults/Phantom_Default',
@@ -148,7 +152,7 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
                    'defaults/Scanner_Default')
     
     # change relevant parameters for the experiment
-    ct.cfg.phantom.filename = str(phantom_path / 'voxelized/voxelized.json')
+    ct.cfg.phantom.filename = str(processed_phantom_path / f'voxelized_{slice_id:03d}.json')
 
     results_dir = output_dir / 'simulations' / f'{phantom_id}'
     results_dir.mkdir(exist_ok=True, parents=True)

@@ -4,10 +4,8 @@ from pathlib import Path
 import pandas as pd
 
 from xcist_sims import run_simulation, make_summary_df
-
-
-# phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov')
-phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/test_torsos_1/adaptive_fov')
+ 
+phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/test_torsos_1/adaptive_fov') # phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov')
 save_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/test_torsos_1/simulations')
 
 
