@@ -4,9 +4,9 @@ from pathlib import Path
 import pandas as pd
 
 from xcist_sims import run_simulation, make_summary_df
- 
-phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/test_torsos_1/adaptive_fov') # phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov')
-save_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/test_torsos_1/simulations')
+
+phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov')
+save_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/Peds_w_liver_lesions/simulations')
 
 
 def renderImage(**kwargs): return run_simulation(datadir=phantom_dir, output_dir=save_dir, **kwargs)   
@@ -14,16 +14,17 @@ def renderImage(**kwargs): return run_simulation(datadir=phantom_dir, output_dir
 
 def run_task(SGE_TASK_ID):
     print('SGE_TASK_ID ' + str(SGE_TASK_ID))
-    [phantom_id, kVp_id, mA_id, slice_id, simulation_id] = l_parameter_comb[SGE_TASK_ID]
+    [phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id] = l_parameter_comb[SGE_TASK_ID]
 
     print('phantom_id ' + str(phantom_id))
     print('kVp_id ' + str(kVp_id))
     print('mA_id ' + str(mA_id))
     print('slice_id ' + str(slice_id))
+    print('lesion_id ' + str(lesion_id))
     print('simulation_id ' + str(simulation_id))
 
     start_time = time.time()
-    ct = renderImage(phantom_id=phantom_id, slice_id=slice_id, mA=mA_id, kVp=kVp_id) #NOTE AEC is not on! smaller patients will enherently be less noisy, this is not clinically representative
+    ct = renderImage(phantom_id=phantom_id, slice_id=slice_id, mA=mA_id, kVp=kVp_id, add_lesion=lesion_id) #NOTE AEC is not on! smaller patients will enherently be less noisy, this is not clinically representative
     total_time =  time.time() - start_time
     print(total_time)
     return ct
@@ -44,8 +45,9 @@ if __name__ == "__main__":
         for kVp_id in kVp_list:
             for mA_id in mA_list:
                 for slice_id in slice_list:
-                    for simulation_id in simulations_list:
-                        l_parameter_comb.append([phantom_id, kVp_id, mA_id, slice_id, simulation_id])
+                    for lesion_id in [True, False]:
+                        for simulation_id in simulations_list:
+                            l_parameter_comb.append([phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id])
     random.shuffle(l_parameter_comb)
     
     run_in_parallel = True

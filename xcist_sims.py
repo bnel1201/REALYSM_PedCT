@@ -4,8 +4,10 @@ from pathlib import Path
 import numpy as np
 from pydicom.data import get_testdata_file
 from pydicom import dcmread, dcmwrite
-import pandas as pd
 import gecatsim as xc
+import pandas as pd
+import pydicom
+from skimage.draw import ellipse
 
 from XCIST.gecatsim.reconstruction.pyfiles import recon
 import DICOM_to_voxelized_phantom
@@ -77,14 +79,13 @@ phantom.overwrite = True                   # Flag to overwrite existing files wi
     DICOM_to_voxelized_phantom.run_from_config(dicom_to_voxel_cfg)
 
 
-
 def get_effective_diameter(ground_truth_mu):
     pixel_width_mm = 480/1024
     A = np.sum(ground_truth_mu>0)*pixel_width_mm**2
     return 2*np.sqrt(A/np.pi)
 
 
-def get_phantom_name(phantom_df, code):
+def get_patient_name(phantom_df, code):
     if phantom_df['Code #'].dtype != int: code = str(code)
     idx = phantom_df[phantom_df['Code #'] == code].index[0]
     patient_num = phantom_df['Code #'][idx]
@@ -100,7 +101,7 @@ def get_phantom_name(phantom_df, code):
 
 
 df = pd.read_csv('selected_xcat_patients.csv')
-patient_name_dict = {get_phantom_name(df, code): code for code in df['Code #']}
+patient_name_dict = {get_patient_name(df, code): code for code in df['Code #']}
 
 
 def get_patient_info(phantom_id):
@@ -112,17 +113,51 @@ def get_patient_info(phantom_id):
  
 
 def make_summary_df(SGE_TASK_ID, ct):
-    [phantom_id, kVp_id, mA_id, slice_id, simulation_id] = l_parameter_comb[SGE_TASK_ID]
+    [phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id] = l_parameter_comb[SGE_TASK_ID]
     sim_summary_df = get_patient_info(phantom_id)
 
     sim_summary_df['kVp'] = [kVp_id]
     sim_summary_df['mA'] =  [mA_id]
     sim_summary_df['slice'] = [slice_id]
     sim_summary_df['simulation id'] = [simulation_id]
+    sim_summary_df['add lesion'] = ct.add_lesion
+    sim_summary_df['lesion name'] = ct.lesion_filename
     sim_summary_df['results name'] = [f'{ct.resultsName}_512x512x1.raw']
     return sim_summary_df
 
-def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120, FOV=None):
+
+def load_dicom_image(dicom_filename): return pydicom.read_file(dicom_filename).pixel_array
+
+
+def load_organ_mask(phantom_path, slice_id, organ='liver'):
+    mask_filename = list((phantom_path / f'voxelized_{slice_id}').glob(f'*{organ}*x1.raw'))[0]
+    mask = load_volume(mask_filename, shape=(1024,1024))
+    if organ == 'liver':
+        mask = mask == 1.049
+    return mask
+
+
+def add_random_circle_lesion(image, mask, radius=20, contrast=-100):
+    r = radius
+    area = (np.pi*r**2)*0.95
+    lesion_image = np.zeros_like(image)
+    counts = 0
+    while np.sum(mask & (lesion_image==contrast)) < area: #can increase threshold to size of lesion
+        counts += 1
+        lesion_image = np.zeros_like(image)
+
+        x, y = np.argwhere(mask)[np.random.randint(0, mask.sum())]
+
+        rr, cc = ellipse(x, y, r, r)
+        lesion_image[rr, cc] = contrast #in HU
+        if counts > 10:
+            raise ValueError("Failed to insert lesion into mask")
+
+    img_w_lesion = image + lesion_image
+    return img_w_lesion, lesion_image, (x, y)
+
+
+def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120, FOV=None, add_lesion=False):
     # prepare output directory
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -138,11 +173,26 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     phantom_path = output_dir / 'phantoms' / f'{phantom_id}'
     phantom_path.mkdir(exist_ok=True, parents=True)
  
-    convert_to_dicom(ground_truth_image, phantom_path / f'ground_truth_{slice_id:03d}.dcm')
+    dicom_filename = phantom_path / f'ground_truth_{slice_id:03d}.dcm'
+    convert_to_dicom(ground_truth_image, dicom_filename)
 
     processed_phantom_path = phantom_path / f'voxelized_{slice_id:03d}'
     voxelize_ground_truth(phantom_path, processed_phantom_path)
 
+    if add_lesion:
+        radius = 20
+        contrast = -100
+        img = load_dicom_image(dicom_filename)
+        organ_mask = load_organ_mask(phantom_path, slice_id, organ='liver')
+        img_w_lesion, lesion_image, lesion_coords = add_random_circle_lesion(img, organ_mask, radius=radius, contrast=contrast)
+        lesion_filename = phantom_path / f'lesion_{slice_id:03d}.dcm'
+        convert_to_dicom(lesion_image, lesion_filename)
+        convert_to_dicom(img_w_lesion, dicom_filename)
+    else:
+        lesion_coords = (0, 0)
+        lesion_filename = ''
+
+    voxelize_ground_truth(phantom_path, processed_phantom_path)
 
     # load defaults
     ct = xc.CatSim('defaults/Phantom_Default',
@@ -179,6 +229,8 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
 
     ct.cfg.waitForKeypress=False
     ct.cfg.do_Recon = True
+    ct.add_lesion = add_lesion
+    ct.lesion_filename = lesion_filename
 
     ct.cfg.recon.fov = FOV
     recon.recon(ct.cfg)

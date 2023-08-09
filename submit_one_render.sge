@@ -10,12 +10,12 @@
 
 
 # export LOG_DIR=/projects01/VICTRE/elena.sizikova/skin/test_full_pipeline/log/
-export LOG_DIR=/home/brandon.nelson/Dev/REALYSM_peds/log
+export LOG_DIR=/home/brandon.nelson/Dev/REALYSM_peds/logs/$(date +'%m/%d/%Y_%H:%M')
 
 mkdir -p $LOG_DIR
 
-export LOGNAME=task_$1.log
-export SGE_TASK_ID=$1 #until I get access to CDRFID0021 when calling submit all_renders.sh
+export LOGNAME=task_$SGE_TASK_ID.log
+# export SGE_TASK_ID=$1 #until I get access to CDRFID0021 when calling submit all_renders.sh
 
 
 exec >>  $LOG_DIR/$LOGNAME
