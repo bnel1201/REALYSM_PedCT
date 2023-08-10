@@ -7,8 +7,8 @@ from pydicom import dcmread, dcmwrite
 import gecatsim as xc
 import pandas as pd
 import pydicom
-from skimage.draw import ellipse
 
+from lesions import ellipse
 from XCIST.gecatsim.reconstruction.pyfiles import recon
 import DICOM_to_voxelized_phantom
 
@@ -112,8 +112,7 @@ def get_patient_info(phantom_id):
     return patient_df
  
 
-def make_summary_df(SGE_TASK_ID, ct):
-    [phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id] = l_parameter_comb[SGE_TASK_ID]
+def make_summary_df(phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id, ct):
     sim_summary_df = get_patient_info(phantom_id)
 
     sim_summary_df['kVp'] = [kVp_id]

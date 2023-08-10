@@ -58,16 +58,18 @@ if __name__ == "__main__":
 
     if run_in_parallel:
         ct = run_task(SGE_TASK_ID)
-        sim_summary_df = make_summary_df(SGE_TASK_ID, ct)
+        params = l_parameter_comb[SGE_TASK_ID]
+        sim_summary_df = make_summary_df(*params, ct=ct)
         sim_summary_df.to_csv(save_dir/f'{SGE_TASK_ID}_summary.csv')
     else:
         print('SGE_TASK_ID not set, running in serial')
         n_params = len(l_parameter_comb)
         for SGE_TASK_ID in range(n_params):
             print(f'{SGE_TASK_ID}/{n_params}')
+            params = l_parameter_comb[SGE_TASK_ID]
             ct = run_task(SGE_TASK_ID)
             if SGE_TASK_ID == 0:
-                sim_summary_df = make_summary_df(SGE_TASK_ID, ct)
+                sim_summary_df = make_summary_df(*params, ct=ct)
             else:
-                sim_summary_df = pd.concat([sim_summary_df, make_summary_df(SGE_TASK_ID, ct)])
+                sim_summary_df = pd.concat([sim_summary_df, make_summary_df(*params, ct=ct)])
             sim_summary_df.to_csv(save_dir/'summary.csv')

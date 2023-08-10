@@ -3,5 +3,5 @@ output_images
 make_phantoms
 __pycache__
 .realysm*
-log
+log*
 .ipynb_checkpoints
