@@ -1,6 +1,9 @@
 import os
-import time 
+import time
+import random
 from pathlib import Path
+from argparse import ArgumentParser
+
 import pandas as pd
 
 from xcist_sims import run_simulation, make_summary_df
@@ -32,7 +35,17 @@ def run_task(SGE_TASK_ID):
 
 if __name__ == "__main__":
 
-    import random
+    parser = ArgumentParser(description='Runs XCIST CT simulations on XCAT datasets')
+    parser.add_argument('--phantom_dir', type=str, default="", help='directory containing `.bin` voxelized XCAT phantoms')
+    parser.add_argument('--save_dir', type=str, default="", help='directory to save simulation results')
+    args = parser.parse_args()
+
+    phantom_dir = args.phantom_dir or '/gpfs_projects/brandon.nelson/REALYSM_peds/test_torsos/anthropomorphic/phantoms/full_fov'
+    save_dir = args.save_dir or '/gpfs_projects/brandon.nelson/REALYSM_peds/test_torsos/output_images_2023-08-10'
+
+    phantom_dir = Path(phantom_dir)
+    save_dir = Path(save_dir)
+
     # find parameter
     phantom_list = [o.stem.split('_log')[0] for o in phantom_dir.glob('*_log')]
     kVp_list = list(range(80, 150, 10))

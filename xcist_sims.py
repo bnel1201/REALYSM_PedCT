@@ -169,7 +169,7 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     ground_truth = phantom[slice_id]
     ground_truth_image = mu_to_HU(ground_truth, mu_water)
 
-    phantom_path = output_dir / 'phantoms' / f'{phantom_id}'
+    phantom_path = output_dir / 'phantoms' / f'{phantom_id}' / f'{slice_id}:03d'
     phantom_path.mkdir(exist_ok=True, parents=True)
  
     dicom_filename = phantom_path / f'ground_truth_{slice_id:03d}.dcm'
@@ -178,18 +178,18 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     processed_phantom_path = phantom_path / f'voxelized_{slice_id:03d}'
     voxelize_ground_truth(phantom_path, processed_phantom_path)
 
+    lesion_coords = (0, 0)
+    lesion_filename = ''
     if add_lesion:
         radius = 20
         contrast = -100
         img = load_dicom_image(dicom_filename)
         organ_mask = load_organ_mask(phantom_path, slice_id, organ='liver')
-        img_w_lesion, lesion_image, lesion_coords = add_random_circle_lesion(img, organ_mask, radius=radius, contrast=contrast)
-        lesion_filename = phantom_path / f'lesion_{slice_id:03d}.dcm'
-        convert_to_dicom(lesion_image, lesion_filename)
-        convert_to_dicom(img_w_lesion, dicom_filename)
-    else:
-        lesion_coords = (0, 0)
-        lesion_filename = ''
+        if organ_mask.sum() > 1:
+            img_w_lesion, lesion_image, lesion_coords = add_random_circle_lesion(img, organ_mask, radius=radius, contrast=contrast)
+            lesion_filename = phantom_path / f'lesion_{slice_id:03d}.dcm'
+            convert_to_dicom(lesion_image, lesion_filename)
+            convert_to_dicom(img_w_lesion, dicom_filename)
 
     voxelize_ground_truth(phantom_path, processed_phantom_path)
 

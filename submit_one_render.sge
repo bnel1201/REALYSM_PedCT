@@ -10,7 +10,9 @@
 
 
 # export LOG_DIR=/projects01/VICTRE/elena.sizikova/skin/test_full_pipeline/log/
-export LOG_DIR=/home/brandon.nelson/Dev/REALYSM_peds/logs/$(date +'%m/%d/%Y_%H:%M')
+export LOG_DIR=$1
+PHANTOM_DIR=$2
+SAVE_DIR=$3
 
 mkdir -p $LOG_DIR
 
@@ -34,7 +36,7 @@ source /home/brandon.nelson/Dev/REALYSM_peds/.realysm_3.10/bin/activate
 
 START_TIME=`date +%s`
 set -x
-( python runRender_peds.py)
+( python runRender_peds.py --phantom_dir $PHANTOM_DIR --save_dir $SAVE_DIR)
 set +x
 EXIT_STATUS=$?
 END_TIME=`date +%s`
