@@ -8,7 +8,7 @@ import gecatsim as xc
 import pandas as pd
 import pydicom
 
-from lesions import ellipse
+from lesions import add_random_circle_lesion
 from XCIST.gecatsim.reconstruction.pyfiles import recon
 import DICOM_to_voxelized_phantom
 
@@ -38,7 +38,7 @@ def convert_to_dicom(img_slice, phantom_path):
     fpath = get_testdata_file("CT_small.dcm")
     ds = dcmread(fpath)
 
-    img_slice += 1024
+    img_slice += 1024 #check this <-- I shouldnt need this bias
     img_slice = img_slice.astype('int16')
     ds.Rows, ds.Columns = img_slice.shape
     ds.PixelData = img_slice.tobytes()
@@ -112,17 +112,10 @@ def get_patient_info(phantom_id):
     return patient_df
  
 
-def make_summary_df(phantom_id, kVp_id, mA_id, slice_id, lesion_id, simulation_id, ct):
-    sim_summary_df = get_patient_info(phantom_id)
-
-    sim_summary_df['kVp'] = [kVp_id]
-    sim_summary_df['mA'] =  [mA_id]
-    sim_summary_df['slice'] = [slice_id]
-    sim_summary_df['simulation id'] = [simulation_id]
-    sim_summary_df['add lesion'] = ct.add_lesion
-    sim_summary_df['lesion name'] = ct.lesion_filename
-    sim_summary_df['results name'] = [f'{ct.resultsName}_512x512x1.raw']
-    return sim_summary_df
+def make_summary_df(phantom_id, **kwargs):
+    patient_info_df = get_patient_info(phantom_id).reset_index()
+    additional_info_df = pd.DataFrame(kwargs)
+    return pd.concat([patient_info_df, additional_info_df], axis=1)
 
 
 def load_dicom_image(dicom_filename): return pydicom.read_file(dicom_filename).pixel_array
@@ -134,26 +127,6 @@ def load_organ_mask(phantom_path, slice_id, organ='liver'):
     if organ == 'liver':
         mask = mask == 1.049
     return mask
-
-
-def add_random_circle_lesion(image, mask, radius=20, contrast=-100):
-    r = radius
-    area = (np.pi*r**2)*0.95
-    lesion_image = np.zeros_like(image)
-    counts = 0
-    while np.sum(mask & (lesion_image==contrast)) < area: #can increase threshold to size of lesion
-        counts += 1
-        lesion_image = np.zeros_like(image)
-
-        x, y = np.argwhere(mask)[np.random.randint(0, mask.sum())]
-
-        rr, cc = ellipse(x, y, r, r)
-        lesion_image[rr, cc] = contrast #in HU
-        if counts > 10:
-            raise ValueError("Failed to insert lesion into mask")
-
-    img_w_lesion = image + lesion_image
-    return img_w_lesion, lesion_image, (x, y)
 
 
 def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120, FOV=None, add_lesion=False):
@@ -169,7 +142,7 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     ground_truth = phantom[slice_id]
     ground_truth_image = mu_to_HU(ground_truth, mu_water)
 
-    phantom_path = output_dir / 'phantoms' / f'{phantom_id}' / f'{slice_id}:03d'
+    phantom_path = output_dir / 'phantoms' / f'{phantom_id}' / f'{slice_id:03d}'
     phantom_path.mkdir(exist_ok=True, parents=True)
  
     dicom_filename = phantom_path / f'ground_truth_{slice_id:03d}.dcm'
@@ -185,9 +158,13 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
         contrast = -100
         img = load_dicom_image(dicom_filename)
         organ_mask = load_organ_mask(phantom_path, slice_id, organ='liver')
+        print(f'Pixels in organ mask: {organ_mask.sum()}')
         if organ_mask.sum() > 1:
             img_w_lesion, lesion_image, lesion_coords = add_random_circle_lesion(img, organ_mask, radius=radius, contrast=contrast)
-            lesion_filename = phantom_path / f'lesion_{slice_id:03d}.dcm'
+            lesion_path = phantom_path / 'lesions'
+            lesion_path.mkdir(exist_ok=True)
+            lesion_filename = lesion_path / f'lesion_{slice_id:03d}.dcm'
+            img_w_lesion -= 1024 # <-- check if convert_to_dicom has bias added or not
             convert_to_dicom(lesion_image, lesion_filename)
             convert_to_dicom(img_w_lesion, dicom_filename)
 
@@ -222,7 +199,7 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     if not FOV:
        FOV = 1.3*get_effective_diameter(ground_truth)
 
-    print(FOV)
+    print(f'FOV size: {FOV}')
 
     ct.run_all()
 

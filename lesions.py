@@ -135,3 +135,23 @@ def ellipse(r, c, r_radius, c_radius, shape=None, rotation=0.):
     rr += upper_left[0]
     cc += upper_left[1]
     return rr, cc
+
+
+def add_random_circle_lesion(image, mask, radius=20, contrast=-100):
+    r = radius
+    area = (np.pi*r**2)*0.95
+    lesion_image = np.zeros_like(image)
+    counts = 0
+    while np.sum(mask & (lesion_image==contrast)) < area: #can increase threshold to size of lesion
+        counts += 1
+        lesion_image = np.zeros_like(image)
+
+        x, y = np.argwhere(mask)[np.random.randint(0, mask.sum())]
+
+        rr, cc = ellipse(x, y, r, r)
+        lesion_image[rr, cc] = contrast #in HU
+        if counts > 10:
+            raise ValueError("Failed to insert lesion into mask")
+
+    img_w_lesion = image + lesion_image
+    return img_w_lesion, lesion_image, (x, y)

@@ -5,8 +5,8 @@
 #$ -m ea
 #$ -P CDRHID0021		# project ID
 #$ -o /dev/null
-#$ -l h_rt=72:00:00		# time limit
-#$ -l h_vmem=100G		# memory limit
+#$ -l h_rt=3:00:00		# time limit
+#$ -l h_vmem=20G		# memory limit
 
 
 # export LOG_DIR=/projects01/VICTRE/elena.sizikova/skin/test_full_pipeline/log/
@@ -15,6 +15,7 @@ PHANTOM_DIR=$2
 SAVE_DIR=$3
 
 mkdir -p $LOG_DIR
+mkdir -p $SAVE_DIR
 
 export LOGNAME=task_$SGE_TASK_ID.log
 # export SGE_TASK_ID=$1 #until I get access to CDRFID0021 when calling submit all_renders.sh

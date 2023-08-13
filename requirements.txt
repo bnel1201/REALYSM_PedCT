@@ -2,4 +2,5 @@ numpy
 pydicom
 matplotlib
 pandas
+pydicom
 git+https://github.com/xcist/main.git

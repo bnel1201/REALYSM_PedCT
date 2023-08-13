@@ -2,7 +2,7 @@
 
 SIM_NAME=Peds_w_liver_lesions_$(date +'%m-%d-%Y_%H-%M')
 PHANTOM_DIR=/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov/
-SAVE_DIR=/projects01/didsr-aiml/brandon.nelson/XCAT_body/$SIM_NAME/simulations
+SAVE_DIR=/projects01/didsr-aiml/brandon.nelson/XCAT_body/$SIM_NAME
 LOG_DIR=/home/brandon.nelson/Dev/REALYSM_peds/logs/$SIM_NAME
 
 

@@ -72,7 +72,15 @@ if __name__ == "__main__":
     if run_in_parallel:
         ct = run_task(SGE_TASK_ID)
         params = l_parameter_comb[SGE_TASK_ID]
-        sim_summary_df = make_summary_df(*params, ct=ct)
+        sim_summary_df = make_summary_df(phantom_id = params[0],
+                                         kVp = [params[1]],
+                                         mA = [params[2]],
+                                         slice = [params[3]],
+                                         fov = [ct.cfg.recon.fov],
+                                         add_lesion = [params[4]],
+                                         simulation = [params[5]],
+                                         lesion_name = [ct.lesion_filename],
+                                         results_name = [f'{ct.resultsName}_512x512x1.raw'])
         sim_summary_df.to_csv(save_dir/f'{SGE_TASK_ID}_summary.csv')
     else:
         print('SGE_TASK_ID not set, running in serial')
@@ -82,7 +90,15 @@ if __name__ == "__main__":
             params = l_parameter_comb[SGE_TASK_ID]
             ct = run_task(SGE_TASK_ID)
             if SGE_TASK_ID == 0:
-                sim_summary_df = make_summary_df(*params, ct=ct)
+                sim_summary_df = make_summary_df(phantom_id = params[0],
+                                                 kVp = [params[1]],
+                                                 mA = [params[2]],
+                                                 slice = [params[3]],
+                                                 fov = [ct.cfg.recon.fov],
+                                                 add_lesion = [params[4]],
+                                                 simulation = [params[5]],
+                                                 lesion_name = [ct.lesion_filename],
+                                                 results_name = [f'{ct.resultsName}_512x512x1.raw'])
             else:
                 sim_summary_df = pd.concat([sim_summary_df, make_summary_df(*params, ct=ct)])
             sim_summary_df.to_csv(save_dir/'summary.csv')
