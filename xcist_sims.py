@@ -1,5 +1,7 @@
 # %%
 from pathlib import Path
+import os
+from glob import glob
 
 import numpy as np
 from pydicom.data import get_testdata_file
@@ -127,6 +129,9 @@ def load_organ_mask(phantom_path, slice_id, organ='liver'):
     if organ == 'liver':
         mask = mask == 1.049
     return mask
+
+
+def cleanup_simulation(resultsName): [os.remove(f) for f in glob(f'{resultsName}.*')]
 
 
 def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120, FOV=None, add_lesion=False):

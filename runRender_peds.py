@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 import pandas as pd
 
-from xcist_sims import run_simulation, make_summary_df
+from xcist_sims import run_simulation, make_summary_df, cleanup_simulation
 
 phantom_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/full_fov')
 save_dir = Path('/projects01/didsr-aiml/brandon.nelson/XCAT_body/Peds_w_liver_lesions/simulations')
@@ -82,6 +82,7 @@ if __name__ == "__main__":
                                          lesion_name = [ct.lesion_filename],
                                          results_name = [f'{ct.resultsName}_512x512x1.raw'])
         sim_summary_df.to_csv(save_dir/f'{SGE_TASK_ID}_summary.csv')
+        cleanup_simulation(ct.resultsName)
     else:
         print('SGE_TASK_ID not set, running in serial')
         n_params = len(l_parameter_comb)
@@ -100,5 +101,16 @@ if __name__ == "__main__":
                                                  lesion_name = [ct.lesion_filename],
                                                  results_name = [f'{ct.resultsName}_512x512x1.raw'])
             else:
-                sim_summary_df = pd.concat([sim_summary_df, make_summary_df(*params, ct=ct)])
+                temp = make_summary_df(phantom_id = params[0],
+                                                 kVp = [params[1]],
+                                                 mA = [params[2]],
+                                                 slice = [params[3]],
+                                                 fov = [ct.cfg.recon.fov],
+                                                 add_lesion = [params[4]],
+                                                 simulation = [params[5]],
+                                                 lesion_name = [ct.lesion_filename],
+                                                 results_name = [f'{ct.resultsName}_512x512x1.raw'])
+                sim_summary_df = pd.concat([sim_summary_df, temp])
+            cleanup_simulation(ct.resultsName)
+
             sim_summary_df.to_csv(save_dir/'summary.csv')
