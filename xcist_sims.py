@@ -14,8 +14,6 @@ from lesions import add_random_circle_lesion
 from XCIST.gecatsim.reconstruction.pyfiles import recon
 import DICOM_to_voxelized_phantom
 
-# !git clone https://github.com/xcist/main.git XCIST
-# !pip install --upgrade --quiet XCIST/
 
 def load_volume(path, shape=(501, 1024, 1024), dtype='float32'):
   input_image = np.fromfile(path, dtype=dtype)
@@ -139,12 +137,13 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
     # prepare phantom for simulation
-    phantom = load_volume(datadir/f'{phantom_id}_atn_1.bin') #whole phantom loaded as attenuation coefficients mu [1/pixels]
-
+    ground_truth = np.copy(load_volume(datadir/f'{phantom_id}_atn_1.bin')[slice_id]) #whole phantom loaded as attenuation coefficients mu [1/pixels]
+    seg_file = datadir/f'{phantom_id}_act_1.bin'
+    if seg_file.exists():
+        ground_truth_labels = np.copy(load_volume(seg_file)[slice_id])
     atten_coeffs = get_attenuation_coefficients(datadir / f'{phantom_id}_log')
     mu_water = atten_coeffs['Body (water)']
 
-    ground_truth = phantom[slice_id]
     ground_truth_image = mu_to_HU(ground_truth, mu_water)
 
     phantom_path = output_dir / 'phantoms' / f'{phantom_id}' / f'{slice_id:03d}'
@@ -188,6 +187,11 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     results_dir = output_dir / 'simulations' / f'{phantom_id}'
     results_dir.mkdir(exist_ok=True, parents=True)
 
+    if seg_file.exists():
+        seg_dicom_file = results_dir / f'{phantom_id}_{slice_id}_segmentation_labels.dcm'
+        convert_to_dicom(ground_truth_labels, seg_dicom_file)
+        print(f'organ segmentations saved to: {seg_dicom_file}')
+
     ct.resultsName = str(results_dir / f'{phantom_id}_{slice_id}_{mA}mA_{kVp}kV')
     ct.cfg.experimentDirectory = str(results_dir)
     ct.cfg.protocol.mA = mA
@@ -202,7 +206,7 @@ def run_simulation(datadir, output_dir, phantom_id, slice_id=0, mA=200, kVp=120,
     ct.cfg.recon.mu = mu_water_mm
 
     if not FOV:
-       FOV = 1.3*get_effective_diameter(ground_truth)
+       FOV = 1.4*get_effective_diameter(ground_truth)
 
     print(f'FOV size: {FOV}')
 

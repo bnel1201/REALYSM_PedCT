@@ -46,13 +46,13 @@ if __name__ == "__main__":
     phantom_dir = Path(phantom_dir)
     save_dir = Path(save_dir)
 
+    # </https://www.aapm.org/pubs/CTProtocols/documents/PediatricRoutineHeadCT.pdf>
     # find parameter
     phantom_list = [o.stem.split('_log')[0] for o in phantom_dir.glob('*_log')]
-    kVp_list = list(range(80, 150, 10))
-    mA_list = list(range(50, 550, 50))
+    kVp_list = [110, 120, 130]
+    mA_list = list(range(50, 400, 50))
     slice_list = list(range(501))
     simulations_list = list(range(1)) #This can be increased to enable multiple scans (different noise realizations of the same slice and settings)
-
     l_parameter_comb = []
     for phantom_id in phantom_list:
         for kVp_id in kVp_list:
