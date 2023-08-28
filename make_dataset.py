@@ -213,6 +213,28 @@ def make_dataset(dataset_dir, summary, max_images=4000, max_lesions=2000, rmse_r
         if image_count % (max_images//print_freq) == 0:
             print(f'images: {image_count}, lesions: {lesion_count}')
 
+    
+def plot_patient_images(ct_image, ground_truth, seg_mask=None, lesion_mask=None):
+    if lesion_mask is not None:
+        f, axs = plt.subplots(2, 2, figsize=(6, 6), dpi=150)
+        axs = axs.flatten()
+    else:
+        f, axs = plt.subplots(1, 3, figsize=(8, 4), dpi=150)
+    axs[0].imshow(ct_image, cmap='gray')
+    axs[0].set_title('CT Image')
+    axs[1].imshow(ground_truth, cmap='gray')
+    axs[1].set_title('Phantom Image')
+    if seg_mask is not None:
+        im = axs[2].imshow(seg_mask)
+        axs[2].set_title('Segmentation Mask')
+        divider = make_axes_locatable(axs[2])
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(im, cax=cax)
+    list(map(lambda ax: ax.set_axis_off(), axs))
+    if lesion_mask is not None:
+        axs[3].imshow(lesion_mask)
+        axs[3].set_title('Lesion Mask')
+
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Program to organize XCIST simulations into a dataset')
