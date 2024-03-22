@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: dxcist
+Version: 0.0.1
+Summary: A small example package
+Author-email: Brandon Nelson <brandon.nelson@fda.hhs.gov>
+Project-URL: Homepage, https://github.com/bnel1201/REALYSM_PedCT
+Project-URL: Bug Tracker, https://github.com/bnel1201/REALYSM_PedCT/issues
+Description-Content-Type: text/markdown

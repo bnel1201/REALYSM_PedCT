@@ -1,0 +1,17 @@
+[project]
+name = "dxcist"
+version = "0.0.1"
+authors = [
+  { name="Brandon Nelson", email="brandon.nelson@fda.hhs.gov" },
+]
+description = "A small example package"
+readme = "README.md"
+
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ["setuptools", "wheel", "numpy", "pydicom", "pandas", "matplotlib"]  # PEP 508 specifications.
+dependencies = ["git+https://github.com/xcist/main.git"]
+
+[project.urls]
+"Homepage" = "https://github.com/bnel1201/REALYSM_PedCT"
+"Bug Tracker" = "https://github.com/bnel1201/REALYSM_PedCT/issues"
