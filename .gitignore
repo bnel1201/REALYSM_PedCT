@@ -7,3 +7,5 @@ log*
 .ipynb_checkpoints
 *.bin
 *.raw
+*.dcm
+*_log
